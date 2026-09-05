@@ -1,0 +1,19 @@
+# Build output
+build/
+out/
+*.class
+
+# Local configuration - contains the real database password.
+# Copy config/app.properties.example instead.
+config/app.properties
+
+# IDE
+.idea/
+.vscode/
+*.iml
+.classpath
+.project
+.settings/
+
+# The MySQL JDBC driver in lib/ IS committed deliberately, so the project
+# builds and runs straight after a clone with nothing else to download.

@@ -1,11 +1,23 @@
 package com.movie_booking.dao;
 
 import com.movie_booking.model.Seat;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
 
 public interface SeatDao {
     int createSeat(Seat seat) throws SQLException;
+
+    /**
+     * Inserts a whole seat layout in one batch, inside the caller's transaction.
+     *
+     * <p>A 96-seat screen means 96 rows. Sending them individually is 96 round
+     * trips, and doing it outside a transaction risks a screen that is left
+     * half-populated if the connection drops midway.
+     *
+     * @return how many seats were created
+     */
+    int createSeats(Connection connection, List<Seat> seats) throws SQLException;
 
     Seat findById(int seatId) throws SQLException;
 

@@ -44,6 +44,39 @@ public class SeatDaoImpl implements SeatDao {
     }
 
     @Override
+    public int createSeats(Connection connection, List<Seat> seats) throws SQLException {
+        if (seats.isEmpty()) {
+            return 0;
+        }
+
+        String sql = "INSERT INTO seats (screen_id, row_label, seat_number, seat_type, status) "
+                + "VALUES (?, ?, ?, ?, ?)";
+
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            for (Seat seat : seats) {
+                statement.setInt(1, seat.getScreenId());
+                statement.setString(2, seat.getRowLabel());
+                statement.setInt(3, seat.getSeatNumber());
+                statement.setString(4, seat.getSeatType() == null
+                        ? SeatType.REGULAR.name() : seat.getSeatType().name());
+                statement.setString(5, seat.getStatus() == null
+                        ? SeatStatus.ACTIVE.name() : seat.getStatus().name());
+                statement.addBatch();
+            }
+
+            int total = 0;
+            for (int result : statement.executeBatch()) {
+                if (result == Statement.SUCCESS_NO_INFO) {
+                    total++;
+                } else if (result > 0) {
+                    total += result;
+                }
+            }
+            return total;
+        }
+    }
+
+    @Override
     public Seat findById(int seatId) throws SQLException {
         String sql = BASE_SELECT + " WHERE seat_id = ?";
         try (Connection connection = DBConnection.getConnection();

@@ -1,0 +1,536 @@
+/* ===========================================================================
+   Movie Booking System - stylesheet
+
+   Plain CSS, no framework. Organised as:
+     1. Design tokens      2. Reset       3. Layout
+     4. Components         5. Seat map    6. Utilities  7. Responsive
+   =========================================================================== */
+
+/* --- 1. Design tokens ---------------------------------------------------- */
+/* Every colour and spacing value in the app comes from here, so the whole
+   theme can be re-tuned by editing this one block. */
+:root {
+    --bg:            #0f1116;
+    --bg-raised:     #171a22;
+    --bg-input:      #1e222c;
+    --border:        #2a2f3a;
+    --border-strong: #3a4150;
+
+    --text:          #e8eaf0;
+    --text-muted:    #9aa3b5;
+    --text-faint:    #6b7383;
+
+    --accent:        #e8b64c;   /* cinema gold - primary actions        */
+    --accent-hover:  #f2c563;
+    --accent-ink:    #1a1408;   /* text on top of the gold             */
+
+    --seat-free:     #2f3646;
+    --seat-free-br:  #454e62;
+    --seat-picked:   #e8b64c;
+    --seat-mine:     #4a7c59;
+    --seat-held:     #4a3a3a;
+    --seat-sold:     #23262e;
+
+    --ok:            #4ba36b;
+    --warn:          #d99b3d;
+    --danger:        #d05c5c;
+
+    --radius:        10px;
+    --radius-sm:     6px;
+    --gap:           16px;
+    --shadow:        0 8px 24px rgba(0, 0, 0, .35);
+
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+            "Helvetica Neue", Arial, sans-serif;
+}
+
+/* --- 2. Reset ------------------------------------------------------------ */
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: var(--font);
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--text);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 { margin: 0 0 .5em; line-height: 1.25; font-weight: 600; }
+h1 { font-size: 1.7rem; }
+h2 { font-size: 1.25rem; }
+h3 { font-size: 1.02rem; }
+p  { margin: 0 0 1em; }
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* --- 3. Layout ----------------------------------------------------------- */
+.site-header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    gap: var(--gap);
+    padding: 14px 28px;
+    background: rgba(15, 17, 22, .92);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+}
+
+.brand {
+    font-weight: 700;
+    font-size: 1.1rem;
+    letter-spacing: .3px;
+    color: var(--text);
+}
+.brand:hover { text-decoration: none; }
+.brand span { color: var(--accent); }
+
+.site-nav { display: flex; gap: 20px; margin-left: auto; align-items: center; }
+.site-nav a { color: var(--text-muted); font-size: .92rem; }
+.site-nav a:hover, .site-nav a.active { color: var(--text); text-decoration: none; }
+
+main { max-width: 1120px; margin: 0 auto; padding: 32px 28px 72px; }
+
+.page-head { margin-bottom: 26px; }
+.page-head .subtitle { color: var(--text-muted); margin: 0; }
+
+/* --- 4. Components ------------------------------------------------------- */
+
+/* Cards ------------------------------------------------------------------ */
+.card {
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: var(--gap);
+}
+
+.movie-card {
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: transform .15s ease, border-color .15s ease;
+}
+.movie-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--border-strong);
+    text-decoration: none;
+}
+
+/* A film has no artwork in this build, so the "poster" is a generated
+   gradient with the initial - visually distinct per film, zero assets. */
+.movie-poster {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 2 / 3;
+    font-size: 3.4rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, .82);
+    background: linear-gradient(150deg, #2b3040, #1b1f2a);
+}
+
+.movie-body { padding: 14px 16px 18px; }
+.movie-title { font-size: 1rem; font-weight: 600; margin: 0 0 4px; color: var(--text); }
+.movie-meta  { font-size: .82rem; color: var(--text-muted); }
+
+/* Buttons ---------------------------------------------------------------- */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 18px;
+    font: inherit;
+    font-weight: 600;
+    font-size: .92rem;
+    color: var(--accent-ink);
+    background: var(--accent);
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: background .15s ease, opacity .15s ease;
+}
+.btn:hover:not(:disabled) { background: var(--accent-hover); text-decoration: none; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+
+.btn-secondary {
+    color: var(--text);
+    background: transparent;
+    border-color: var(--border-strong);
+}
+.btn-secondary:hover:not(:disabled) { background: var(--bg-input); }
+
+.btn-danger { color: #fff; background: var(--danger); }
+.btn-danger:hover:not(:disabled) { background: #e06d6d; }
+
+.btn-sm { padding: 6px 12px; font-size: .84rem; }
+.btn-block { width: 100%; }
+
+/* Forms ------------------------------------------------------------------ */
+.form-narrow { max-width: 420px; margin: 40px auto; }
+
+.field { margin-bottom: 16px; }
+.field label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: .86rem;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+input, select {
+    width: 100%;
+    padding: 10px 12px;
+    font: inherit;
+    font-size: .94rem;
+    color: var(--text);
+    background: var(--bg-input);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+}
+input:focus, select:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+input::placeholder { color: var(--text-faint); }
+
+.field-row { display: flex; gap: 12px; }
+.field-row .field { flex: 1; }
+
+/* Messages --------------------------------------------------------------- */
+.message {
+    padding: 11px 14px;
+    margin-bottom: 16px;
+    font-size: .9rem;
+    border: 1px solid;
+    border-radius: var(--radius-sm);
+}
+.message.error   { color: #ffbcbc; background: rgba(208, 92, 92, .12); border-color: #6b3535; }
+.message.success { color: #b6e8c8; background: rgba(75, 163, 107, .12); border-color: #2f5c40; }
+.message.info    { color: #cfd6e6; background: rgba(120, 140, 180, .10); border-color: #3a4150; }
+.message:empty   { display: none; }
+
+/* Badges ----------------------------------------------------------------- */
+.badge {
+    display: inline-block;
+    padding: 3px 9px;
+    font-size: .72rem;
+    font-weight: 600;
+    letter-spacing: .4px;
+    text-transform: uppercase;
+    border-radius: 20px;
+}
+.badge-ok        { color: #b6e8c8; background: rgba(75, 163, 107, .16); }
+.badge-warn      { color: #f0d3a0; background: rgba(217, 155, 61, .16); }
+.badge-danger    { color: #ffbcbc; background: rgba(208, 92, 92, .16); }
+.badge-muted     { color: var(--text-muted); background: rgba(154, 163, 181, .12); }
+
+/* Show list -------------------------------------------------------------- */
+.theatre-block { margin-bottom: 22px; }
+.theatre-name  { font-size: 1rem; font-weight: 600; margin-bottom: 2px; }
+.theatre-place { font-size: .82rem; color: var(--text-muted); margin-bottom: 12px; }
+
+.showtimes { display: flex; flex-wrap: wrap; gap: 10px; }
+
+.showtime {
+    min-width: 104px;
+    padding: 9px 14px;
+    text-align: center;
+    background: var(--bg-input);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: border-color .15s ease;
+}
+.showtime:hover { border-color: var(--accent); text-decoration: none; }
+.showtime.sold-out { opacity: .45; cursor: not-allowed; }
+.showtime.sold-out:hover { border-color: var(--border-strong); }
+
+.showtime .time  { display: block; font-weight: 600; color: var(--text); }
+.showtime .seats { display: block; font-size: .74rem; margin-top: 2px; }
+.showtime .seats.ok   { color: var(--ok); }
+.showtime .seats.low  { color: var(--warn); }
+.showtime .seats.none { color: var(--danger); }
+
+/* Date picker strip ------------------------------------------------------ */
+.date-strip { display: flex; gap: 8px; margin-bottom: 26px; flex-wrap: wrap; }
+
+.date-chip {
+    padding: 8px 16px;
+    font-size: .86rem;
+    text-align: center;
+    background: var(--bg-input);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    color: var(--text-muted);
+}
+.date-chip.active {
+    color: var(--accent-ink);
+    background: var(--accent);
+    border-color: var(--accent);
+    font-weight: 600;
+}
+
+/* --- 5. Seat map --------------------------------------------------------- */
+.seat-layout { display: flex; gap: 32px; align-items: flex-start; flex-wrap: wrap; }
+.seat-area   { flex: 1 1 560px; }
+
+/* The curved bar the audience faces. */
+.screen-bar {
+    margin: 0 auto 34px;
+    max-width: 480px;
+    height: 8px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    border-radius: 50%;
+    opacity: .65;
+}
+.screen-label {
+    text-align: center;
+    font-size: .74rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    margin-top: -26px;
+    margin-bottom: 32px;
+}
+
+.seat-rows { display: flex; flex-direction: column; gap: 7px; align-items: center; }
+
+.seat-row { display: flex; align-items: center; gap: 7px; }
+
+.row-label {
+    width: 22px;
+    font-size: .76rem;
+    color: var(--text-faint);
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.seat {
+    width: 28px;
+    height: 28px;
+    font-size: .66rem;
+    color: var(--text-muted);
+    background: var(--seat-free);
+    border: 1px solid var(--seat-free-br);
+    border-radius: 5px 5px 3px 3px;
+    cursor: pointer;
+    padding: 0;
+    transition: transform .1s ease, background .12s ease;
+}
+.seat:hover:not(:disabled) { transform: scale(1.14); border-color: var(--accent); }
+
+.seat.selected {
+    color: var(--accent-ink);
+    background: var(--seat-picked);
+    border-color: var(--seat-picked);
+    font-weight: 700;
+}
+.seat.mine {
+    color: #d6f0dd;
+    background: var(--seat-mine);
+    border-color: #5f9670;
+}
+.seat.held {
+    background: var(--seat-held);
+    border-color: #5c4646;
+    color: var(--text-faint);
+    cursor: not-allowed;
+}
+.seat.booked {
+    background: var(--seat-sold);
+    border-color: #2a2d35;
+    color: #454a55;
+    cursor: not-allowed;
+}
+.seat:disabled { cursor: not-allowed; }
+
+/* Gangway between the two halves of a row. */
+.aisle { width: 18px; flex-shrink: 0; }
+
+.legend {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 18px;
+    margin-top: 30px;
+    font-size: .78rem;
+    color: var(--text-muted);
+}
+.legend-item { display: flex; align-items: center; gap: 7px; }
+.legend-swatch {
+    width: 15px; height: 15px;
+    border-radius: 4px;
+    border: 1px solid var(--seat-free-br);
+    background: var(--seat-free);
+}
+.legend-swatch.selected { background: var(--seat-picked); border-color: var(--seat-picked); }
+.legend-swatch.mine     { background: var(--seat-mine);   border-color: #5f9670; }
+.legend-swatch.held     { background: var(--seat-held);   border-color: #5c4646; }
+.legend-swatch.booked   { background: var(--seat-sold);   border-color: #2a2d35; }
+
+/* Booking summary panel -------------------------------------------------- */
+.summary { flex: 0 0 288px; position: sticky; top: 92px; }
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 7px 0;
+    font-size: .88rem;
+}
+.summary-row .label { color: var(--text-muted); }
+.summary-row.total {
+    margin-top: 10px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+    font-size: 1.05rem;
+    font-weight: 700;
+}
+
+.price-tiers { font-size: .78rem; color: var(--text-muted); margin-top: 14px; }
+.price-tiers div { display: flex; justify-content: space-between; padding: 2px 0; }
+
+/* Countdown while a hold is live ----------------------------------------- */
+.countdown {
+    padding: 12px 14px;
+    margin-bottom: 16px;
+    text-align: center;
+    background: rgba(217, 155, 61, .12);
+    border: 1px solid #6b5327;
+    border-radius: var(--radius-sm);
+}
+.countdown .clock {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--accent);
+}
+.countdown .note { font-size: .76rem; color: var(--text-muted); }
+.countdown.expiring .clock { color: var(--danger); }
+
+/* --- Tickets ------------------------------------------------------------- */
+.ticket {
+    display: flex;
+    gap: 18px;
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    margin-bottom: 14px;
+}
+
+/* The perforated stub down the left edge. */
+.ticket-stub {
+    flex: 0 0 4px;
+    border-radius: 4px;
+    background: repeating-linear-gradient(
+        to bottom, var(--accent) 0 8px, transparent 8px 15px);
+    opacity: .55;
+}
+.ticket-body { flex: 1; }
+.ticket-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+.ticket-title { font-size: 1.05rem; font-weight: 600; margin: 0; }
+.ticket-meta  { font-size: .85rem; color: var(--text-muted); }
+.ticket-seats { margin-top: 10px; font-size: .85rem; }
+.ticket-seats strong { color: var(--text); }
+.ticket-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--border);
+}
+.ticket-ref {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: .82rem;
+    color: var(--text-muted);
+    letter-spacing: .5px;
+}
+
+/* --- Tables (admin) ------------------------------------------------------ */
+table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+th { color: var(--text-muted); font-weight: 600; font-size: .78rem;
+     text-transform: uppercase; letter-spacing: .5px; }
+tbody tr:hover { background: rgba(255, 255, 255, .02); }
+
+/* --- Tabs (admin) -------------------------------------------------------- */
+.tabs { display: flex; gap: 4px; margin-bottom: 24px; border-bottom: 1px solid var(--border); }
+.tab {
+    padding: 10px 18px;
+    font: inherit;
+    font-size: .9rem;
+    color: var(--text-muted);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+}
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* --- 6. Utilities -------------------------------------------------------- */
+.muted     { color: var(--text-muted); }
+.small     { font-size: .82rem; }
+.mono      { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+.center    { text-align: center; }
+.mt-0  { margin-top: 0; }
+.mt-2  { margin-top: 20px; }
+.mb-2  { margin-bottom: 20px; }
+.hidden { display: none !important; }
+
+.empty-state { padding: 56px 20px; text-align: center; color: var(--text-muted); }
+.empty-state h3 { color: var(--text); }
+
+.spinner {
+    width: 22px; height: 22px;
+    margin: 40px auto;
+    border: 2px solid var(--border-strong);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* --- 7. Responsive ------------------------------------------------------- */
+@media (max-width: 860px) {
+    main { padding: 24px 18px 56px; }
+    .site-header { padding: 12px 18px; }
+    .seat-layout { flex-direction: column; }
+    .summary { position: static; flex: 1 1 auto; width: 100%; }
+    .seat { width: 24px; height: 24px; font-size: .6rem; }
+    .row-label { width: 18px; }
+}
+
+@media (max-width: 560px) {
+    .site-nav { gap: 14px; }
+    .site-nav a { font-size: .84rem; }
+    .seat { width: 21px; height: 21px; }
+    .grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+}

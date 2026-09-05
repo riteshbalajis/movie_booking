@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CineBook - Book Movie Tickets</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<header class="site-header" id="site-header"></header>
+
+<main>
+    <div class="page-head">
+        <h1>Now Showing</h1>
+        <p class="subtitle">Pick a film to see today's showtimes.</p>
+    </div>
+
+    <div class="field mb-2" style="max-width: 380px;">
+        <input type="search" id="search" placeholder="Search by title, genre or language">
+    </div>
+
+    <div id="message" class="message"></div>
+    <div id="spinner" class="spinner"></div>
+    <div id="movies" class="grid"></div>
+</main>
+
+<script src="/js/api.js"></script>
+<script src="/js/app.js"></script>
+<script>
+(async function () {
+    await App.renderHeader('movies');
+
+    const grid = document.getElementById('movies');
+    const spinner = document.getElementById('spinner');
+    const search = document.getElementById('search');
+
+    function render(movies) {
+        if (movies.length === 0) {
+            grid.innerHTML =
+                '<div class="empty-state" style="grid-column: 1 / -1;">' +
+                '<h3>Nothing showing</h3>' +
+                '<p>No films matched. Try a different search.</p></div>';
+            return;
+        }
+
+        grid.innerHTML = movies.map(movie =>
+            '<a class="movie-card" href="/movie.html?id=' + movie.movieId + '">' +
+                '<div class="movie-poster" style="' + App.posterStyle(movie.title) + '">' +
+                    App.escapeHtml(movie.title.charAt(0)) +
+                '</div>' +
+                '<div class="movie-body">' +
+                    '<h3 class="movie-title">' + App.escapeHtml(movie.title) + '</h3>' +
+                    '<div class="movie-meta">' +
+                        App.escapeHtml(movie.language || '') +
+                        (movie.genre ? ' &middot; ' + App.escapeHtml(movie.genre) : '') +
+                        '<br>' + App.minutesToRuntime(movie.durationMinutes) +
+                    '</div>' +
+                '</div>' +
+            '</a>'
+        ).join('');
+    }
+
+    async function load(query) {
+        spinner.classList.remove('hidden');
+        App.clearMessage('message');
+        try {
+            const data = await Api.movies(query);
+            render(data.movies);
+        } catch (error) {
+            App.showMessage('message', error.message, 'error');
+            grid.innerHTML = '';
+        } finally {
+            spinner.classList.add('hidden');
+        }
+    }
+
+    // Wait for a pause in typing rather than firing a request per keystroke.
+    let debounce;
+    search.addEventListener('input', () => {
+        clearTimeout(debounce);
+        debounce = setTimeout(() => load(search.value.trim()), 250);
+    });
+
+    load('');
+})();
+</script>
+
+</body>
+</html>
