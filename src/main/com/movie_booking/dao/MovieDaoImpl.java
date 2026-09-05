@@ -68,18 +68,13 @@ public class MovieDaoImpl implements MovieDao {
     }
 
     @Override
-    public List<Movie> findActiveMovies() throws SQLException {
-        String sql = BASE_SELECT + " WHERE status = ? ORDER BY release_date, title";
+    public List<Movie> findAllActive() throws SQLException {
+        String sql = BASE_SELECT + " WHERE status = ? ORDER BY release_date DESC, title";
         try (Connection connection = DBConnection.getConnection();
                 PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, MovieStatus.ACTIVE.name());
             return readMovies(statement);
         }
-    }
-
-    @Override
-    public List<Movie> findAllActive() throws SQLException {
-        return findActiveMovies();
     }
 
     @Override
@@ -110,12 +105,6 @@ public class MovieDaoImpl implements MovieDao {
             statement.setString(3, searchPattern);
             return readMovies(statement);
         }
-    }
-
-    @Override
-    public List<Movie> searchByTitle(String keyword) throws SQLException {
-        String sql = BASE_SELECT + " WHERE title LIKE ? ORDER BY title";
-        return findMoviesByValue(sql, "%" + keyword + "%");
     }
 
     @Override
