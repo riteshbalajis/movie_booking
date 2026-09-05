@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Showtimes - CineBook</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<header class="site-header" id="site-header"></header>
+
+<main>
+    <div id="message" class="message"></div>
+
+    <div class="page-head" id="movie-head"></div>
+
+    <div class="date-strip" id="dates"></div>
+
+    <div id="spinner" class="spinner"></div>
+    <div id="shows"></div>
+</main>
+
+<script src="/js/api.js"></script>
+<script src="/js/app.js"></script>
+<script>
+(async function () {
+    await App.renderHeader('movies');
+
+    const movieId = App.param('id');
+    if (!movieId) {
+        window.location.href = '/index.html';
+        return;
+    }
+
+    const head = document.getElementById('movie-head');
+    const dateStrip = document.getElementById('dates');
+    const showList = document.getElementById('shows');
+    const spinner = document.getElementById('spinner');
+
+    let selectedDate = App.isoToday(0);
+
+    /* ---- Film header ---- */
+    try {
+        const movie = await Api.movie(movieId);
+        document.title = movie.title + ' - CineBook';
+        head.innerHTML =
+            '<h1>' + App.escapeHtml(movie.title) + '</h1>' +
+            '<p class="subtitle">' +
+                App.escapeHtml(movie.language || '') +
+                (movie.genre ? ' &middot; ' + App.escapeHtml(movie.genre) : '') +
+                ' &middot; ' + App.minutesToRuntime(movie.durationMinutes) +
+            '</p>' +
+            (movie.description
+                ? '<p class="muted" style="max-width:70ch;">' +
+                  App.escapeHtml(movie.description) + '</p>'
+                : '');
+    } catch (error) {
+        App.showMessage('message', error.message, 'error');
+        spinner.classList.add('hidden');
+        return;
+    }
+
+    /* ---- Date chips: today plus the next six days ---- */
+    function renderDates() {
+        let html = '';
+        for (let offset = 0; offset < 7; offset++) {
+            const iso = App.isoToday(offset);
+            html +=
+                '<button class="date-chip' + (iso === selectedDate ? ' active' : '') + '"' +
+                ' data-date="' + iso + '">' +
+                (offset === 0 ? 'Today' : App.dateLabel(iso)) +
+                '</button>';
+        }
+        dateStrip.innerHTML = html;
+
+        dateStrip.querySelectorAll('.date-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                selectedDate = chip.dataset.date;
+                renderDates();
+                loadShows();
+            });
+        });
+    }
+
+    /* ---- Showtimes, grouped by theatre ---- */
+    function render(shows) {
+        if (shows.length === 0) {
+            showList.innerHTML =
+                '<div class="empty-state"><h3>No shows on this date</h3>' +
+                '<p>Try another day.</p></div>';
+            return;
+        }
+
+        // Group in one pass so each theatre gets a single block.
+        const byTheatre = new Map();
+        shows.forEach(show => {
+            if (!byTheatre.has(show.theatreId)) {
+                byTheatre.set(show.theatreId, { info: show, shows: [] });
+            }
+            byTheatre.get(show.theatreId).shows.push(show);
+        });
+
+        let html = '';
+        byTheatre.forEach(group => {
+            html +=
+                '<div class="theatre-block card mb-2">' +
+                    '<div class="theatre-name">' +
+                        App.escapeHtml(group.info.theatreName) + '</div>' +
+                    '<div class="theatre-place">' +
+                        App.escapeHtml(group.info.theatreLocation) + '</div>' +
+                    '<div class="showtimes">' +
+                        group.shows.map(showTile).join('') +
+                    '</div>' +
+                '</div>';
+        });
+        showList.innerHTML = html;
+    }
+
+    function showTile(show) {
+        const soldOut = show.availableSeats === 0;
+
+        let seatClass = 'ok';
+        let seatText = show.availableSeats + ' seats';
+        if (soldOut) {
+            seatClass = 'none';
+            seatText = 'Sold out';
+        } else if (show.fillLevel === 'FILLING_FAST') {
+            seatClass = 'low';
+            seatText = show.availableSeats + ' left';
+        }
+
+        const inner =
+            '<span class="time">' + App.time(show.startTime) + '</span>' +
+            '<span class="seats ' + seatClass + '">' + seatText + '</span>';
+
+        // A sold-out show is rendered as a dead div rather than a link, so it
+        // cannot be clicked through to a seat map with nothing to sell.
+        return soldOut
+            ? '<div class="showtime sold-out">' + inner + '</div>'
+            : '<a class="showtime" href="/seats.html?showId=' + show.showId + '">' +
+              inner + '</a>';
+    }
+
+    async function loadShows() {
+        spinner.classList.remove('hidden');
+        showList.innerHTML = '';
+        try {
+            const data = await Api.showsFor(movieId, selectedDate);
+            render(data.shows);
+        } catch (error) {
+            App.showMessage('message', error.message, 'error');
+        } finally {
+            spinner.classList.add('hidden');
+        }
+    }
+
+    renderDates();
+    loadShows();
+})();
+</script>
+
+</body>
+</html>

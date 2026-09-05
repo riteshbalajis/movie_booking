@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Create account - CineBook</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<header class="site-header" id="site-header"></header>
+
+<main>
+    <div class="form-narrow card">
+        <h1 class="mt-0">Create your account</h1>
+        <p class="subtitle muted">It takes a moment.</p>
+
+        <div id="message" class="message"></div>
+
+        <form id="register-form">
+            <div class="field">
+                <label for="name">Full name</label>
+                <input type="text" id="name" required autocomplete="name">
+            </div>
+            <div class="field">
+                <label for="email">E-mail</label>
+                <input type="email" id="email" required autocomplete="email">
+            </div>
+            <div class="field">
+                <label for="phone">Phone <span class="muted">(optional)</span></label>
+                <input type="tel" id="phone" autocomplete="tel">
+            </div>
+            <div class="field">
+                <label for="password">Password</label>
+                <input type="password" id="password" required minlength="8"
+                       autocomplete="new-password">
+                <p class="small muted" style="margin:6px 0 0;">At least 8 characters.</p>
+            </div>
+            <button class="btn btn-block" type="submit" id="submit">Create account</button>
+        </form>
+
+        <p class="small muted mt-2 center">
+            Already registered? <a href="/login.html">Sign in</a>
+        </p>
+    </div>
+</main>
+
+<script src="/js/api.js"></script>
+<script src="/js/app.js"></script>
+<script>
+(async function () {
+    await App.renderHeader('sign up');
+
+    const form = document.getElementById('register-form');
+    const submit = document.getElementById('submit');
+
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        App.clearMessage('message');
+        submit.disabled = true;
+        submit.textContent = 'Creating...';
+
+        try {
+            await Api.register({
+                name:     document.getElementById('name').value.trim(),
+                email:    document.getElementById('email').value.trim(),
+                phone:    document.getElementById('phone').value.trim(),
+                password: document.getElementById('password').value
+            });
+
+            // Registration signs the user in, so go straight on.
+            const next = App.param('next');
+            const safeNext = next && next.startsWith('/') && !next.startsWith('//')
+                ? next : '/index.html';
+            window.location.href = safeNext;
+
+        } catch (error) {
+            App.showMessage('message', error.message, 'error');
+            submit.disabled = false;
+            submit.textContent = 'Create account';
+        }
+    });
+})();
+</script>
+
+</body>
+</html>

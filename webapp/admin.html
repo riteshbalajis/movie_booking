@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Admin - CineBook</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<header class="site-header" id="site-header"></header>
+
+<main>
+    <div class="page-head">
+        <h1>Administration</h1>
+        <p class="subtitle">Manage films, venues and showtimes.</p>
+    </div>
+
+    <div id="message" class="message"></div>
+
+    <div class="tabs">
+        <button class="tab active" data-tab="shows">Shows</button>
+        <button class="tab" data-tab="movies">Films</button>
+        <button class="tab" data-tab="venues">Venues</button>
+        <button class="tab" data-tab="users">Users</button>
+    </div>
+
+    <!-- ---------------- Shows ---------------- -->
+    <section class="tab-panel active" id="panel-shows">
+        <div class="card mb-2">
+            <h2 class="mt-0">Schedule a show</h2>
+            <form id="show-form">
+                <div class="field-row">
+                    <div class="field">
+                        <label for="show-movie">Film</label>
+                        <select id="show-movie" required></select>
+                    </div>
+                    <div class="field">
+                        <label for="show-theatre">Theatre</label>
+                        <select id="show-theatre" required></select>
+                    </div>
+                    <div class="field">
+                        <label for="show-screen">Screen</label>
+                        <select id="show-screen" required></select>
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="show-date">Date</label>
+                        <input type="date" id="show-date" required>
+                    </div>
+                    <div class="field">
+                        <label for="show-time">Start time</label>
+                        <input type="time" id="show-time" required>
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="price-regular">Regular ₹</label>
+                        <input type="number" id="price-regular" value="150" min="1" step="1" required>
+                    </div>
+                    <div class="field">
+                        <label for="price-premium">Premium ₹</label>
+                        <input type="number" id="price-premium" value="250" min="1" step="1" required>
+                    </div>
+                    <div class="field">
+                        <label for="price-recliner">Recliner ₹</label>
+                        <input type="number" id="price-recliner" value="400" min="1" step="1" required>
+                    </div>
+                </div>
+                <p class="small muted">
+                    The end time is worked out from the running time plus a
+                    15-minute turnaround, and the slot is checked against the
+                    screen's existing shows.
+                </p>
+                <button class="btn" type="submit">Schedule show</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2 class="mt-0">Scheduled shows</h2>
+            <div class="field" style="max-width:220px;">
+                <label for="list-date">Date</label>
+                <input type="date" id="list-date">
+            </div>
+            <div id="shows-table"></div>
+        </div>
+    </section>
+
+    <!-- ---------------- Films ---------------- -->
+    <section class="tab-panel" id="panel-movies">
+        <div class="card mb-2">
+            <h2 class="mt-0">Add a film</h2>
+            <form id="movie-form">
+                <div class="field-row">
+                    <div class="field">
+                        <label for="movie-title">Title</label>
+                        <input type="text" id="movie-title" required>
+                    </div>
+                    <div class="field">
+                        <label for="movie-duration">Runtime (minutes)</label>
+                        <input type="number" id="movie-duration" min="1" max="600" required>
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="movie-language">Language</label>
+                        <input type="text" id="movie-language">
+                    </div>
+                    <div class="field">
+                        <label for="movie-genre">Genre</label>
+                        <input type="text" id="movie-genre">
+                    </div>
+                    <div class="field">
+                        <label for="movie-release">Release date</label>
+                        <input type="date" id="movie-release">
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="movie-description">Description</label>
+                    <input type="text" id="movie-description">
+                </div>
+                <button class="btn" type="submit">Add film</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2 class="mt-0">All films</h2>
+            <div id="movies-table"></div>
+        </div>
+    </section>
+
+    <!-- ---------------- Venues ---------------- -->
+    <section class="tab-panel" id="panel-venues">
+        <div class="card mb-2">
+            <h2 class="mt-0">Add a theatre</h2>
+            <form id="theatre-form">
+                <div class="field-row">
+                    <div class="field">
+                        <label for="theatre-name">Name</label>
+                        <input type="text" id="theatre-name" required>
+                    </div>
+                    <div class="field">
+                        <label for="theatre-location">Location</label>
+                        <input type="text" id="theatre-location" required>
+                    </div>
+                </div>
+                <button class="btn" type="submit">Add theatre</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2 class="mt-0">Add a screen</h2>
+            <p class="small muted">
+                The seat layout is generated with the screen: rows are labelled
+                A onwards, cheapest at the front.
+            </p>
+            <form id="screen-form">
+                <div class="field-row">
+                    <div class="field">
+                        <label for="screen-theatre">Theatre</label>
+                        <select id="screen-theatre" required></select>
+                    </div>
+                    <div class="field">
+                        <label for="screen-name">Screen name</label>
+                        <input type="text" id="screen-name" placeholder="Screen 3" required>
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label for="screen-rows">Rows</label>
+                        <input type="number" id="screen-rows" value="8" min="1" max="26" required>
+                    </div>
+                    <div class="field">
+                        <label for="screen-per-row">Seats per row</label>
+                        <input type="number" id="screen-per-row" value="12" min="1" max="40" required>
+                    </div>
+                    <div class="field">
+                        <label for="screen-regular">Regular rows</label>
+                        <input type="number" id="screen-regular" value="3" min="0" max="26" required>
+                    </div>
+                    <div class="field">
+                        <label for="screen-premium">Premium rows</label>
+                        <input type="number" id="screen-premium" value="3" min="0" max="26" required>
+                    </div>
+                </div>
+                <button class="btn" type="submit">Add screen</button>
+            </form>
+        </div>
+    </section>
+
+    <!-- ---------------- Users ---------------- -->
+    <section class="tab-panel" id="panel-users">
+        <div class="card">
+            <h2 class="mt-0">Registered users</h2>
+            <div id="users-table"></div>
+        </div>
+    </section>
+</main>
+
+<script src="/js/api.js"></script>
+<script src="/js/app.js"></script>
+<script>
+(async function () {
+    const user = await App.renderHeader('admin');
+    if (!App.requireSignIn(user)) {
+        return;
+    }
+    if (!user.isAdmin) {
+        document.querySelector('main').innerHTML =
+            '<div class="empty-state"><h3>Administrators only</h3>' +
+            '<p>This account does not have access.</p></div>';
+        return;
+    }
+
+    /* ---- Tabs ---- */
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            tab.classList.add('active');
+            document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+
+            if (tab.dataset.tab === 'users') {
+                loadUsers();
+            }
+        });
+    });
+
+    const today = App.isoToday(0);
+    document.getElementById('show-date').value = today;
+    document.getElementById('list-date').value = today;
+
+    /* ---- Reference data used by the drop-downs ---- */
+    let movies = [];
+    let theatres = [];
+
+    async function loadReferenceData() {
+        const [movieData, theatreData] = await Promise.all([
+            Api.adminMovies(), Api.theatres()
+        ]);
+        movies = movieData.movies;
+        theatres = theatreData.theatres;
+
+        fillSelect('show-movie', movies.filter(m => m.status !== 'INACTIVE'),
+            m => m.movieId, m => m.title + ' (' + m.durationMinutes + 'm)');
+        fillSelect('show-theatre', theatres, t => t.theatreId, t => t.name);
+        fillSelect('screen-theatre', theatres, t => t.theatreId, t => t.name);
+
+        renderMoviesTable();
+        await loadScreens();
+    }
+
+    function fillSelect(id, items, valueOf, labelOf) {
+        document.getElementById(id).innerHTML = items.map(item =>
+            '<option value="' + valueOf(item) + '">' +
+            App.escapeHtml(labelOf(item)) + '</option>').join('');
+    }
+
+    /** The screen list depends on the chosen theatre, so it reloads with it. */
+    async function loadScreens() {
+        const theatreId = document.getElementById('show-theatre').value;
+        if (!theatreId) {
+            return;
+        }
+        const data = await Api.screensOf(theatreId);
+        fillSelect('show-screen', data.screens, s => s.screenId,
+            s => s.name + ' (' + s.capacity + ' seats)');
+    }
+    document.getElementById('show-theatre').addEventListener('change', loadScreens);
+
+    /* ---- Shows ---- */
+    document.getElementById('show-form').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        App.clearMessage('message');
+        try {
+            await Api.createShow({
+                movieId:       Number(document.getElementById('show-movie').value),
+                screenId:      Number(document.getElementById('show-screen').value),
+                showDate:      document.getElementById('show-date').value,
+                startTime:     document.getElementById('show-time').value + ':00',
+                regularPrice:  document.getElementById('price-regular').value,
+                premiumPrice:  document.getElementById('price-premium').value,
+                reclinerPrice: document.getElementById('price-recliner').value
+            });
+            App.showMessage('message', 'Show scheduled and its seats created.', 'success');
+            loadShowsTable();
+        } catch (error) {
+            App.showMessage('message', error.message, 'error');
+        }
+    });
+
+    async function loadShowsTable() {
+        const date = document.getElementById('list-date').value || today;
+        const container = document.getElementById('shows-table');
+        try {
+            const data = await Api.adminShows(date);
+            if (data.shows.length === 0) {
+                container.innerHTML = '<p class="muted">No shows on this date.</p>';
+                return;
+            }
+            container.innerHTML =
+                '<table><thead><tr>' +
+                '<th>Film</th><th>Venue</th><th>Time</th>' +
+                '<th>Seats left</th><th>Status</th><th></th>' +
+                '</tr></thead><tbody>' +
+                data.shows.map(show =>
+                    '<tr>' +
+                        '<td>' + App.escapeHtml(show.movieTitle) + '</td>' +
+                        '<td>' + App.escapeHtml(show.theatreName) + ' / ' +
+                                 App.escapeHtml(show.screenName) + '</td>' +
+                        '<td>' + App.time(show.startTime) + '</td>' +
+                        '<td>' + show.availableSeats + ' / ' + show.totalSeats + '</td>' +
+                        '<td><span class="badge ' +
+                            (show.status === 'SCHEDULED' ? 'badge-ok' : 'badge-muted') +
+                            '">' + show.status + '</span></td>' +
+                        '<td>' + (show.status === 'SCHEDULED'
+                            ? '<button class="btn btn-secondary btn-sm" data-cancel-show="' +
+                              show.showId + '">Cancel</button>' : '') + '</td>' +
+                    '</tr>').join('') +
+                '</tbody></table>';
+
+            container.querySelectorAll('[data-cancel-show]').forEach(button => {
+                button.addEventListener('click', () => cancelShow(button.dataset.cancelShow));
+            });
+        } catch (error) {
+            App.showMessage('message', error.message, 'error');
+        }
+    }
+
+    async function cancelShow(showId) {
+        if (!window.confirm(
+                'Cancel this show? Every booking on it is cancelled and the seats freed.')) {
+            return;
+        }
+        try {
+            const result = await Api.cancelShow(showId);
+            App.showMessage('message',
+                'Show cancelled. ' + result.bookingsCancelled +
+                ' booking(s) were cancelled with it.', 'success');
+            loadShowsTable();
+        } catch (error) {
+            App.showMessage('message', error.message, 'error');
+        }
+    }
+
+    document.getElementById('list-date').addEventListener('change', loadShowsTable);
+
+    /* ---- Films ---- */
+    document.getElementById('movie-form').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        App.clearMessage('message');
+        try {
+            await Api.createMovie({
+                title:           document.getElementById('movie-title').value,
+                durationMinutes: Number(document.getElementById('movie-duration').value),
+                language:        document.getElementById('movie-language').value,
+                genre:           document.getElementById('movie-genre').value,
+                releaseDate:     document.getElementById('movie-release').value,
+                description:     document.getElementById('movie-description').value
+            });
+            App.showMessage('message', 'Film added.', 'success');
+            event.target.reset();
+            loadReferenceData();
+        } catch (error) {
+            App.showMessage('message', error.message, 'error');
+        }
+    });
+
+    function renderMoviesTable() {
+        document.getElementById('movies-table').innerHTML =
+            '<table><thead><tr>' +
+            '<th>Title</th><th>Language</th><th>Genre</th>' +
+            '<th>Runtime</th><th>Status</th>' +
+            '</tr></thead><tbody>' +
+            movies.map(movie =>
+                '<tr>' +
+                    '<td>' + App.escapeHtml(movie.title) + '</td>' +
+                    '<td>' + App.escapeHtml(movie.language || '-') + '</td>' +
+                    '<td>' + App.escapeHtml(movie.genre || '-') + '</td>' +
+                    '<td>' + App.minutesToRuntime(movie.durationMinutes) + '</td>' +
+                    '<td><span class="badge ' +
+                        (movie.status === 'ACTIVE' ? 'badge-ok' : 'badge-muted') +
+                        '">' + movie.status + '</span></td>' +
+                '</tr>').join('') +
+            '</tbody></table>';
+    }
+
+    /* ---- Venues ---- */
+    document.getElementById('theatre-form').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        App.clearMessage('message');
+        try {
+            await Api.createTheatre({
+                name:     document.getElementById('theatre-name').value,
+                location: document.getElementById('theatre-location').value
+            });
+            App.showMessage('message', 'Theatre added.', 'success');
+            event.target.reset();
+            loadReferenceData();
+        } catch (error) {
+            App.showMessage('message', error.message, 'error');
+        }
+    });
+
+    document.getElementById('screen-form').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        App.clearMessage('message');
+        try {
+            const screen = await Api.createScreen({
+                theatreId:   Number(document.getElementById('screen-theatre').value),
+                name:        document.getElementById('screen-name').value,
+                rows:        Number(document.getElementById('screen-rows').value),
+                seatsPerRow: Number(document.getElementById('screen-per-row').value),
+                regularRows: Number(document.getElementById('screen-regular').value),
+                premiumRows: Number(document.getElementById('screen-premium').value)
+            });
+            App.showMessage('message',
+                'Screen created with ' + screen.capacity + ' seats.', 'success');
+            loadReferenceData();
+        } catch (error) {
+            App.showMessage('message', error.message, 'error');
+        }
+    });
+
+    /* ---- Users ---- */
+    async function loadUsers() {
+        try {
+            const data = await Api.adminUsers();
+            document.getElementById('users-table').innerHTML =
+                '<table><thead><tr>' +
+                '<th>Name</th><th>E-mail</th><th>Phone</th><th>Role</th>' +
+                '</tr></thead><tbody>' +
+                data.users.map(u =>
+                    '<tr>' +
+                        '<td>' + App.escapeHtml(u.name) + '</td>' +
+                        '<td>' + App.escapeHtml(u.email) + '</td>' +
+                        '<td>' + App.escapeHtml(u.phone || '-') + '</td>' +
+                        '<td><span class="badge ' +
+                            (u.role === 'ADMIN' ? 'badge-warn' : 'badge-muted') +
+                            '">' + u.role + '</span></td>' +
+                    '</tr>').join('') +
+                '</tbody></table>';
+        } catch (error) {
+            App.showMessage('message', error.message, 'error');
+        }
+    }
+
+    await loadReferenceData();
+    await loadShowsTable();
+})();
+</script>
+
+</body>
+</html>

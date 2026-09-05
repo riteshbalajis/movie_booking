@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Select Seats - CineBook</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<header class="site-header" id="site-header"></header>
+
+<main>
+    <div id="message" class="message"></div>
+
+    <div class="page-head" id="show-head"></div>
+
+    <div id="spinner" class="spinner"></div>
+
+    <div class="seat-layout hidden" id="layout">
+
+        <section class="seat-area card">
+            <div class="screen-bar"></div>
+            <div class="screen-label">Screen this way</div>
+
+            <div class="seat-rows" id="seat-rows"></div>
+
+            <div class="legend">
+                <span class="legend-item"><i class="legend-swatch"></i>Available</span>
+                <span class="legend-item"><i class="legend-swatch selected"></i>Your pick</span>
+                <span class="legend-item"><i class="legend-swatch mine"></i>Held by you</span>
+                <span class="legend-item"><i class="legend-swatch held"></i>Held by someone</span>
+                <span class="legend-item"><i class="legend-swatch booked"></i>Sold</span>
+            </div>
+        </section>
+
+        <aside class="summary card">
+            <h2 class="mt-0">Your booking</h2>
+
+            <div id="countdown" class="countdown hidden">
+                <span class="clock" id="clock">--:--</span>
+                <span class="note">left to confirm</span>
+            </div>
+
+            <div class="summary-row">
+                <span class="label">Seats</span>
+                <span id="seat-list">None selected</span>
+            </div>
+            <div class="summary-row">
+                <span class="label">Tickets</span>
+                <span id="seat-count">0</span>
+            </div>
+            <div class="summary-row total">
+                <span>Total</span>
+                <span id="total">₹0.00</span>
+            </div>
+
+            <div class="mt-2">
+                <button class="btn btn-block" id="action-btn" disabled>Select seats</button>
+            </div>
+
+            <div class="price-tiers" id="tiers"></div>
+        </aside>
+    </div>
+</main>
+
+<script src="/js/api.js"></script>
+<script src="/js/app.js"></script>
+<script>
+(async function () {
+    const user = await App.renderHeader('movies');
+
+    const showId = App.param('showId');
+    if (!showId) {
+        window.location.href = '/index.html';
+        return;
+    }
+
+    const spinner    = document.getElementById('spinner');
+    const layout     = document.getElementById('layout');
+    const head       = document.getElementById('show-head');
+    const rowsBox    = document.getElementById('seat-rows');
+    const actionBtn  = document.getElementById('action-btn');
+    const countdown  = document.getElementById('countdown');
+    const clock      = document.getElementById('clock');
+
+    /* ---- Page state -------------------------------------------------------
+       `selected` holds seat ids the user has clicked but not yet held.
+       `booking` is set once the server has actually reserved them, at which
+       point the page switches from "select" mode to "confirm" mode. */
+    let seats = [];
+    let maxSeats = 10;
+    let selected = new Set();
+    let booking = null;
+    let timerId = null;
+
+    /* ---- Loading ---------------------------------------------------------- */
+
+    async function loadSeatMap() {
+        spinner.classList.remove('hidden');
+        try {
+            const data = await Api.seatMap(showId);
+            seats = data.seats;
+            maxSeats = data.maxSeatsPerBooking;
+            renderShowHeader(data.show);
+            renderSeats();
+            renderTiers();
+            layout.classList.remove('hidden');
+        } catch (error) {
+            App.showMessage('message', error.message, 'error');
+        } finally {
+            spinner.classList.add('hidden');
+        }
+    }
+
+    function renderShowHeader(show) {
+        document.title = show.movieTitle + ' - Select Seats';
+        head.innerHTML =
+            '<h1>' + App.escapeHtml(show.movieTitle) + '</h1>' +
+            '<p class="subtitle">' +
+                App.escapeHtml(show.theatreName) + ' &middot; ' +
+                App.escapeHtml(show.screenName) + ' &middot; ' +
+                App.dateLabel(show.showDate) + ' at ' + App.time(show.startTime) +
+            '</p>';
+    }
+
+    /* ---- Seat grid --------------------------------------------------------- */
+
+    function renderSeats() {
+        // Group by row, preserving the server's ordering.
+        const rows = new Map();
+        seats.forEach(seat => {
+            if (!rows.has(seat.rowLabel)) {
+                rows.set(seat.rowLabel, []);
+            }
+            rows.get(seat.rowLabel).push(seat);
+        });
+
+        let html = '';
+        rows.forEach((rowSeats, label) => {
+            html += '<div class="seat-row"><span class="row-label">' + label + '</span>';
+
+            rowSeats.forEach((seat, index) => {
+                // A gangway down the middle, so the map reads like a real cinema.
+                if (index > 0 && index === Math.floor(rowSeats.length / 2)) {
+                    html += '<span class="aisle"></span>';
+                }
+                html += seatButton(seat);
+            });
+
+            html += '<span class="row-label">' + label + '</span></div>';
+        });
+
+        rowsBox.innerHTML = html;
+
+        rowsBox.querySelectorAll('.seat').forEach(button => {
+            button.addEventListener('click', () => toggleSeat(Number(button.dataset.id)));
+        });
+    }
+
+    function seatButton(seat) {
+        let className = 'seat';
+        let disabled = '';
+
+        if (seat.status === 'BOOKED') {
+            className += ' booked';
+            disabled = 'disabled';
+        } else if (seat.status === 'HELD') {
+            className += ' held';
+            disabled = 'disabled';
+        } else if (seat.status === 'MINE') {
+            className += ' mine';
+        } else if (selected.has(seat.showSeatId)) {
+            className += ' selected';
+        }
+
+        // Once seats are held, the grid is frozen: changing the selection would
+        // not match what the server has actually reserved.
+        if (booking) {
+            disabled = 'disabled';
+        }
+
+        return '<button class="' + className + '" data-id="' + seat.showSeatId + '" ' +
+               'title="' + seat.label + ' - ' + App.money(seat.price) +
+               ' (' + seat.seatType + ')" ' + disabled + '>' +
+               seat.seatNumber + '</button>';
+    }
+
+    function renderTiers() {
+        // One price line per seat type actually present on this screen.
+        const tiers = new Map();
+        seats.forEach(seat => tiers.set(seat.seatType, seat.price));
+
+        let html = '';
+        tiers.forEach((price, type) => {
+            html += '<div><span>' + type.charAt(0) + type.slice(1).toLowerCase() +
+                    '</span><span>' + App.money(price) + '</span></div>';
+        });
+        document.getElementById('tiers').innerHTML = html;
+    }
+
+    /* ---- Selection --------------------------------------------------------- */
+
+    function toggleSeat(seatId) {
+        if (booking) {
+            return;
+        }
+        if (selected.has(seatId)) {
+            selected.delete(seatId);
+        } else {
+            if (selected.size >= maxSeats) {
+                App.showMessage('message',
+                    'You can book at most ' + maxSeats + ' seats at a time.', 'info');
+                return;
+            }
+            selected.add(seatId);
+        }
+        App.clearMessage('message');
+        renderSeats();
+        renderSummary();
+    }
+
+    function selectedSeats() {
+        return seats.filter(seat => selected.has(seat.showSeatId));
+    }
+
+    function renderSummary() {
+        const picked = selectedSeats();
+        const total = picked.reduce((sum, seat) => sum + Number(seat.price), 0);
+
+        document.getElementById('seat-list').textContent =
+            picked.length ? picked.map(s => s.label).join(', ') : 'None selected';
+        document.getElementById('seat-count').textContent = picked.length;
+        document.getElementById('total').textContent = App.money(total);
+
+        if (!booking) {
+            actionBtn.disabled = picked.length === 0;
+            actionBtn.textContent = picked.length === 0
+                ? 'Select seats'
+                : 'Hold ' + picked.length + ' seat' + (picked.length > 1 ? 's' : '');
+        }
+    }
+
+    /* ---- Hold, then confirm ------------------------------------------------ */
+
+    actionBtn.addEventListener('click', async () => {
+        if (!App.requireSignIn(user)) {
+            return;
+        }
+        actionBtn.disabled = true;
+        App.clearMessage('message');
+
+        try {
+            if (!booking) {
+                booking = await Api.holdSeats(Number(showId), Array.from(selected));
+                startCountdown(booking.expiresAt);
+                actionBtn.textContent = 'Pay ' + App.money(booking.totalAmount) +
+                                        ' & confirm';
+                actionBtn.disabled = false;
+                App.showMessage('message',
+                    'Seats held. Confirm before the timer runs out.', 'info');
+                renderSeats();
+            } else {
+                const confirmed = await Api.confirm(booking.bookingId);
+                stopCountdown();
+                window.location.href = '/bookings.html?ref=' + confirmed.bookingRef;
+            }
+        } catch (error) {
+            handleBookingError(error);
+        }
+    });
+
+    /**
+     * Losing a race is a normal outcome, not a crash, so it is recovered from
+     * in place: drop the seats that went, refresh the map, and let the user
+     * pick again without leaving the page.
+     */
+    function handleBookingError(error) {
+        App.showMessage('message', error.message, 'error');
+
+        if (error.code === 'SEATS_UNAVAILABLE' && error.unavailableSeats) {
+            const gone = new Set(error.unavailableSeats);
+            seats.forEach(seat => {
+                if (gone.has(seat.label)) {
+                    selected.delete(seat.showSeatId);
+                }
+            });
+        }
+
+        booking = null;
+        stopCountdown();
+        loadSeatMap().then(renderSummary);
+    }
+
+    /* ---- Countdown ---------------------------------------------------------
+       Purely informative. The authoritative deadline is the one stored with the
+       hold - if this clock were wrong, or the tab were asleep, the server would
+       still refuse a late confirmation. */
+
+    function startCountdown(expiresAtIso) {
+        const deadline = new Date(expiresAtIso).getTime();
+        countdown.classList.remove('hidden');
+
+        function tick() {
+            const remaining = Math.max(0, deadline - Date.now());
+            const minutes = Math.floor(remaining / 60000);
+            const seconds = Math.floor((remaining % 60000) / 1000);
+
+            clock.textContent = minutes + ':' + String(seconds).padStart(2, '0');
+            countdown.classList.toggle('expiring', remaining < 60000);
+
+            if (remaining === 0) {
+                stopCountdown();
+                booking = null;
+                actionBtn.textContent = 'Select seats';
+                actionBtn.disabled = true;
+                selected.clear();
+                App.showMessage('message',
+                    'Your hold expired and the seats were released.', 'error');
+                loadSeatMap().then(renderSummary);
+            }
+        }
+
+        tick();
+        timerId = setInterval(tick, 1000);
+    }
+
+    function stopCountdown() {
+        clearInterval(timerId);
+        timerId = null;
+        countdown.classList.add('hidden');
+    }
+
+    await loadSeatMap();
+    renderSummary();
+})();
+</script>
+
+</body>
+</html>

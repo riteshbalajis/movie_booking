@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>My Bookings - CineBook</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<header class="site-header" id="site-header"></header>
+
+<main>
+    <div class="page-head">
+        <h1>My Bookings</h1>
+        <p class="subtitle">Your tickets and past visits.</p>
+    </div>
+
+    <div id="message" class="message"></div>
+    <div id="spinner" class="spinner"></div>
+    <div id="bookings"></div>
+</main>
+
+<script src="/js/api.js"></script>
+<script src="/js/app.js"></script>
+<script>
+(async function () {
+    const user = await App.renderHeader('my bookings');
+    if (!App.requireSignIn(user)) {
+        return;
+    }
+
+    const list = document.getElementById('bookings');
+    const spinner = document.getElementById('spinner');
+
+    // Set when arriving straight from a successful confirmation.
+    const justBooked = App.param('ref');
+    if (justBooked) {
+        App.showMessage('message',
+            'Booking confirmed. Your reference is ' + justBooked + '.', 'success');
+    }
+
+    const STATUS_BADGE = {
+        CONFIRMED: 'badge-ok',
+        PENDING:   'badge-warn',
+        CANCELLED: 'badge-danger',
+        EXPIRED:   'badge-muted',
+        COMPLETED: 'badge-muted'
+    };
+
+    function render(bookings) {
+        if (bookings.length === 0) {
+            list.innerHTML =
+                '<div class="empty-state">' +
+                '<h3>No bookings yet</h3>' +
+                '<p>When you book a film it will appear here.</p>' +
+                '<a class="btn mt-2" href="/index.html">Browse films</a></div>';
+            return;
+        }
+
+        list.innerHTML = bookings.map(ticket).join('');
+
+        list.querySelectorAll('[data-cancel]').forEach(button => {
+            button.addEventListener('click', () => cancelBooking(button.dataset.cancel));
+        });
+    }
+
+    function ticket(booking) {
+        const badge = STATUS_BADGE[booking.status] || 'badge-muted';
+        const cancellable = booking.status === 'CONFIRMED' || booking.status === 'PENDING';
+
+        return '' +
+        '<article class="ticket">' +
+            '<div class="ticket-stub"></div>' +
+            '<div class="ticket-body">' +
+                '<div class="ticket-head">' +
+                    '<div>' +
+                        '<h3 class="ticket-title">' +
+                            App.escapeHtml(booking.movieTitle) + '</h3>' +
+                        '<div class="ticket-meta">' +
+                            App.escapeHtml(booking.theatreName) + ' &middot; ' +
+                            App.escapeHtml(booking.screenName) + '<br>' +
+                            App.dateLabel(booking.showDate) + ' at ' +
+                            App.time(booking.startTime) +
+                        '</div>' +
+                    '</div>' +
+                    '<span class="badge ' + badge + '">' + booking.status + '</span>' +
+                '</div>' +
+
+                '<div class="ticket-seats">' +
+                    'Seats <strong>' +
+                    App.escapeHtml((booking.seats || []).join(', ') || '-') +
+                    '</strong> &middot; ' + booking.seatCount + ' ticket' +
+                    (booking.seatCount === 1 ? '' : 's') +
+                '</div>' +
+
+                '<div class="ticket-foot">' +
+                    '<span class="ticket-ref">' +
+                        App.escapeHtml(booking.bookingRef) + '</span>' +
+                    '<span>' +
+                        '<strong>' + App.money(booking.totalAmount) + '</strong>' +
+                        (cancellable
+                            ? ' <button class="btn btn-secondary btn-sm" data-cancel="' +
+                              booking.bookingId + '">Cancel</button>'
+                            : '') +
+                    '</span>' +
+                '</div>' +
+            '</div>' +
+        '</article>';
+    }
+
+    async function cancelBooking(bookingId) {
+        if (!window.confirm('Cancel this booking? The seats go back on sale.')) {
+            return;
+        }
+        App.clearMessage('message');
+        try {
+            await Api.cancel(bookingId);
+            App.showMessage('message', 'Booking cancelled.', 'success');
+            load();
+        } catch (error) {
+            App.showMessage('message', error.message, 'error');
+        }
+    }
+
+    async function load() {
+        spinner.classList.remove('hidden');
+        try {
+            const data = await Api.myBookings();
+            render(data.bookings);
+        } catch (error) {
+            App.showMessage('message', error.message, 'error');
+        } finally {
+            spinner.classList.add('hidden');
+        }
+    }
+
+    load();
+})();
+</script>
+
+</body>
+</html>
