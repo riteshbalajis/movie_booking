@@ -1,0 +1,48 @@
+# ---------------------------------------------------------------------------
+#  Movie Booking System - local configuration
+#
+#  Copy this file to  config/app.properties  and edit it:
+#      copy config\app.properties.example config\app.properties
+#
+#  app.properties is git-ignored so real passwords never reach the repository.
+#
+#  Any value here can also be supplied as an environment variable in
+#  UPPER_SNAKE_CASE (db.password -> DB_PASSWORD) or as a -D system property,
+#  both of which take priority over this file.
+# ---------------------------------------------------------------------------
+
+# --- Database --------------------------------------------------------------
+db.url=jdbc:mysql://localhost:3306/movie_booking?useSSL=false&allowPublicKeyRetrieval=true&connectionTimeZone=SERVER&preserveInstants=false&rewriteBatchedStatements=true
+db.user=root
+db.password=CHANGE_ME
+
+# Maximum simultaneous connections. Keep it below the MySQL max_connections
+# limit; 20 comfortably serves the 32 HTTP worker threads because a request
+# holds a connection only for the length of its query.
+db.pool.size=20
+db.pool.borrowTimeoutMillis=10000
+
+# --- HTTP server -----------------------------------------------------------
+server.port=8080
+server.threads=32
+server.webRoot=webapp
+
+# --- Booking rules ---------------------------------------------------------
+# How long selected seats stay reserved while the user completes the booking.
+booking.holdMinutes=8
+booking.maxSeatsPerBooking=10
+# How often the background sweeper reclaims abandoned holds.
+booking.sweepIntervalSeconds=60
+
+# --- Sessions --------------------------------------------------------------
+session.timeoutMinutes=120
+
+# --- Transactions ----------------------------------------------------------
+# Retries after an InnoDB deadlock or lock-wait timeout.
+tx.maxAttempts=3
+tx.retryBaseDelayMillis=40
+
+# --- First-run administrator ----------------------------------------------
+# Created only if the users table contains no admin yet.
+admin.email=admin@movie.com
+admin.password=Admin@123

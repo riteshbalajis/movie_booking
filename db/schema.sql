@@ -22,7 +22,7 @@ CREATE TABLE users (
     phone         VARCHAR(20),
     role          ENUM('CUSTOMER','ADMIN')  NOT NULL DEFAULT 'CUSTOMER',
     status        ENUM('ACTIVE','INACTIVE') NOT NULL DEFAULT 'ACTIVE',
-    created_at    TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_users_email UNIQUE (email)
 ) ENGINE=InnoDB;
 
@@ -34,7 +34,7 @@ CREATE TABLE theatres (
     name       VARCHAR(120) NOT NULL,
     location   VARCHAR(150) NOT NULL,
     status     ENUM('ACTIVE','INACTIVE') NOT NULL DEFAULT 'ACTIVE',
-    created_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_theatres_name UNIQUE (name),
     INDEX idx_theatres_location (location)
 ) ENGINE=InnoDB;
@@ -80,7 +80,7 @@ CREATE TABLE movies (
     genre            VARCHAR(80),
     release_date     DATE,
     status           ENUM('UPCOMING','ACTIVE','INACTIVE') NOT NULL DEFAULT 'ACTIVE',
-    created_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at       DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT uq_movies_title UNIQUE (title),
     INDEX idx_movies_status (status),
     INDEX idx_movies_language (language),
@@ -99,7 +99,7 @@ CREATE TABLE shows (
     end_time   TIME NOT NULL,
     status     ENUM('SCHEDULED','ONGOING','COMPLETED','CANCELLED')
                NOT NULL DEFAULT 'SCHEDULED',
-    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at DATETIME  NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_shows_movie  FOREIGN KEY (movie_id)  REFERENCES movies  (movie_id),
     CONSTRAINT fk_shows_screen FOREIGN KEY (screen_id) REFERENCES screens (screen_id),
     -- two shows can never start at the same instant on the same screen
@@ -151,7 +151,7 @@ CREATE TABLE bookings (
     total_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     status       ENUM('PENDING','CONFIRMED','CANCELLED','EXPIRED','COMPLETED')
                  NOT NULL DEFAULT 'PENDING',
-    booked_at    TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    booked_at    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
     -- while PENDING, the moment the seat hold lapses
     expires_at   DATETIME      NULL,
     CONSTRAINT fk_bookings_user FOREIGN KEY (user_id) REFERENCES users (user_id),

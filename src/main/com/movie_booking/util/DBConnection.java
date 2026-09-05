@@ -22,11 +22,27 @@ import java.sql.SQLException;
  */
 public final class DBConnection {
 
+    /**
+     * Note the time-zone settings, which are load-bearing rather than decoration.
+     *
+     * <p>By default Connector/J treats a {@code DATETIME} as an instant and shifts
+     * it between the JVM's zone and the server's. Every value in this schema is a
+     * <em>wall-clock</em> time in the cinema's own locale - a 10:00 show starts at
+     * 10:00 whoever is looking - so that shifting is pure corruption. It caused a
+     * real bug during development: a hold written for "now + 8 minutes" was stored
+     * five and a half hours in the past, so the seats read back as already expired
+     * and the hold did nothing at all.
+     *
+     * <p>{@code connectionTimeZone=SERVER} with {@code preserveInstants=false}
+     * turns the conversion off, so a {@code LocalDateTime} round-trips exactly as
+     * written.
+     */
     private static final String DEFAULT_URL =
             "jdbc:mysql://localhost:3306/movie_booking"
             + "?useSSL=false"
             + "&allowPublicKeyRetrieval=true"
-            + "&serverTimezone=UTC"
+            + "&connectionTimeZone=SERVER"
+            + "&preserveInstants=false"
             + "&rewriteBatchedStatements=true";
 
     private static final ConnectionPool POOL = createPool();
