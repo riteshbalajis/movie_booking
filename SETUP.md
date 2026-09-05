@@ -7,8 +7,80 @@ each one. Follow it in order and it works.
 
 ---
 
+## The short version — one command
+
+Once **JDK 17** and **MySQL 8** are installed (Steps 1 and 2 below), everything
+else is a single command:
+
+```bat
+git clone -b feature/complete-booking-system https://github.com/adithya11sci/movie_booking.git
+cd movie_booking
+scripts\setup.bat
+```
+
+macOS and Linux:
+
+```bash
+git clone -b feature/complete-booking-system https://github.com/adithya11sci/movie_booking.git
+cd movie_booking
+./scripts/setup.sh
+```
+
+It asks for your MySQL password once, then does the rest:
+
+```
+  [1/6] Checking Java...            OK  javac 17.0.x
+  [2/6] Locating MySQL...           OK  found mysql client
+  [3/6] MySQL credentials...        OK  connected
+  [4/6] Database...                 OK  9 tables created, demo data loaded
+  [5/6] Writing config...           OK
+  [6/6] Building...                 OK  compiled
+
+  Running the concurrency suite to verify the setup...
+  5 of 5 tests passed.
+
+  Setup complete.
+```
+
+It then offers to start the server. Open <http://localhost:8080>.
+
+### Flags
+
+| Flag | Effect |
+|---|---|
+| `--skip-tests` | Skip the concurrency suite (saves ~15 seconds) |
+| `--keep-db` | Don't drop and recreate the database — keeps existing bookings |
+| `--yes` | Never prompt; for unattended use |
+
+To skip the password prompt as well:
+
+```bat
+set MB_DB_PASSWORD=your_password
+scripts\setup.bat --yes
+```
+
+### What it will not do for you
+
+**Installing MySQL Server.** Its installer asks you to choose a root password,
+and scripting that silently would mean either inventing a password you don't
+know or leaving the server with none. Step 2 covers it — it takes about five
+minutes and you only do it once.
+
+**Installing the JDK unattended.** If `javac` is missing and `winget` is
+available, the script offers to install Temurin JDK 17 for you, but it asks
+first rather than installing software behind your back.
+
+### If anything fails
+
+The script stops at the first problem and names it. The rest of this document
+explains each step in full, and [Troubleshooting](#troubleshooting) is keyed to
+the exact error messages.
+
+---
+
 ## Contents
 
+- [The short version — one command](#the-short-version--one-command)
 - [What you are installing, and why](#what-you-are-installing-and-why)
 - [Step 1 — Install the JDK](#step-1--install-the-jdk)
 - [Step 2 — Install MySQL](#step-2--install-mysql)
@@ -156,8 +228,13 @@ mysql --version
 
 **Expected:** `mysql  Ver 8.0.xx for Win64 on x86_64`
 
-> **If you would rather not touch PATH:** skip this and use the **MySQL 8.0
-> Command Line Client** from the Start Menu in Step 4 instead. Both work.
+> **This step is optional.** `scripts\setup.bat` also looks in the default
+> install locations, so it finds MySQL whether or not it is on your PATH. Adding
+> it just means you can type `mysql` yourself when you want to inspect the data.
+>
+> If you would rather not touch PATH at all, you can also use the **MySQL 8.0
+> Command Line Client** from the Start Menu wherever this guide runs a `mysql`
+> command.
 
 ---
 
@@ -214,6 +291,10 @@ dir lib
 ---
 
 ## Step 4 — Create the database
+
+> **Steps 4 to 6 are what `scripts\setup.bat` automates.** Run that instead if
+> you just want it working; read on if you want to know what it does, or if it
+> failed and you need to do a step by hand.
 
 This creates the `movie_booking` database, its nine tables, and demo data
 (3 theatres, 4 screens, 384 seats, 5 films, 11 shows).
