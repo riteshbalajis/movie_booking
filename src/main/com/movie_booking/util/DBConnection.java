@@ -52,11 +52,72 @@ public final class DBConnection {
     }
 
     /**
-     * @return a pooled connection in auto-commit mode. Always close it in a
-     *         try-with-resources block.
+     * Hands out a connection to work on.
+     *
+     * <p>If this thread is inside a {@link Tx} transaction, the transaction's own
+     * connection is returned instead of a new one from the pool. That is what
+     * lets an ordinary DAO read - {@code showDao.findById(id)} - be called from
+     * inside a booking transaction and automatically take part in it: it sees the
+     * transaction's uncommitted writes and sits inside its locks.
+     *
+     * <p>It also prevents a self-inflicted deadlock. Borrowing a second
+     * connection while already holding one means that, with as many concurrent
+     * transactions as the pool has connections, every thread holds one and waits
+     * for another that can never arrive. That failure is not theoretical: it
+     * showed up as twelve of twenty threads timing out during load testing.
+     *
+     * <p>The returned wrapper ignores {@code close()}, so a DAO's
+     * try-with-resources cannot end the transaction early. The transaction is
+     * closed by whoever opened it.
+     *
+     * @return a connection to use; always close it in a try-with-resources block
      */
     public static Connection getConnection() throws SQLException {
+        Connection active = Tx.activeConnection();
+        if (active != null) {
+            return nonClosing(active);
+        }
         return POOL.borrow();
+    }
+
+    /**
+     * Wraps a connection so that {@code close()} does nothing.
+     *
+     * <p>Used only for the transaction-scoped connection above: the DAO believes
+     * it owns what it was given and dutifully closes it, which must not commit,
+     * roll back, or return anything to the pool.
+     */
+    private static Connection nonClosing(final Connection connection) {
+        return (Connection) java.lang.reflect.Proxy.newProxyInstance(
+                DBConnection.class.getClassLoader(),
+                new Class<?>[] { Connection.class },
+                new java.lang.reflect.InvocationHandler() {
+                    @Override
+                    public Object invoke(Object proxy, java.lang.reflect.Method method,
+                            Object[] args) throws Throwable {
+                        String name = method.getName();
+
+                        if ("close".equals(name)) {
+                            return null; // The transaction owner closes it.
+                        }
+                        if ("isClosed".equals(name)) {
+                            return Boolean.FALSE;
+                        }
+                        // Guard the transaction against a DAO that decides to
+                        // commit or change the commit mode underneath it.
+                        if ("commit".equals(name) || "rollback".equals(name)
+                                || "setAutoCommit".equals(name)) {
+                            throw new SQLException("A DAO must not call " + name
+                                    + "() - the transaction is owned by Tx.");
+                        }
+
+                        try {
+                            return method.invoke(connection, args);
+                        } catch (java.lang.reflect.InvocationTargetException ex) {
+                            throw ex.getCause() == null ? ex : ex.getCause();
+                        }
+                    }
+                });
     }
 
     /** Closes the pool. Called from the shutdown hook in {@code Main}. */

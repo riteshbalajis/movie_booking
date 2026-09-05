@@ -49,8 +49,53 @@ public final class Tx {
     private static final long RETRY_BASE_DELAY_MILLIS =
             AppConfig.getLong("tx.retryBaseDelayMillis", 40L);
 
+    /**
+     * The transaction this thread is currently inside, if any.
+     *
+     * <p><b>Why this exists.</b> A service method inside a transaction often needs
+     * an ordinary read - "does this show exist?" - and those DAO methods take no
+     * {@link Connection} because they normally borrow one themselves. Inside a
+     * transaction that is a trap with two separate failure modes:
+     *
+     * <ul>
+     *   <li><b>It can deadlock the pool.</b> The thread already holds one
+     *       connection and asks for a second. With twenty threads doing that
+     *       against a twenty-connection pool, every thread holds one and waits
+     *       for another that can never come, until each times out.</li>
+     *   <li><b>It reads the wrong data.</b> A second connection is outside the
+     *       transaction, so it cannot see the transaction's own uncommitted
+     *       writes, and it sits outside the locks the transaction holds.</li>
+     * </ul>
+     *
+     * <p>Publishing the active connection here lets
+     * {@link DBConnection#getConnection()} hand back the transaction's own
+     * connection instead of borrowing a second one. Every DAO read therefore
+     * joins the surrounding transaction automatically, with no change at the
+     * call site and no {@code Connection} parameter added to read methods.
+     *
+     * <p>A {@link ThreadLocal} is the right carrier because a transaction belongs
+     * to exactly one thread: each HTTP request is served by one pool thread, and
+     * the value is always cleared in a {@code finally} so a pooled thread cannot
+     * carry a stale connection into the next request.
+     */
+    private static final ThreadLocal<Connection> ACTIVE_TRANSACTION =
+            new ThreadLocal<Connection>();
+
     private Tx() {
         // Utility class.
+    }
+
+    /**
+     * @return the connection of the transaction running on this thread, or
+     *         {@code null} if this thread is not in one
+     */
+    public static Connection activeConnection() {
+        return ACTIVE_TRANSACTION.get();
+    }
+
+    /** @return {@code true} if this thread is already inside a transaction */
+    public static boolean isActive() {
+        return ACTIVE_TRANSACTION.get() != null;
     }
 
     /** A unit of work that runs against an open, non-auto-commit connection. */
@@ -71,12 +116,26 @@ public final class Tx {
      * @throws DataAccessException any other SQL failure, after rollback
      */
     public static <T> T execute(Work<T> work) {
+        // Nested call: join the transaction already running on this thread
+        // rather than starting a second one. The outermost execute() owns the
+        // commit, so an inner unit of work cannot commit half of an outer one.
+        Connection existing = ACTIVE_TRANSACTION.get();
+        if (existing != null) {
+            try {
+                return work.execute(existing);
+            } catch (SQLException ex) {
+                throw new DataAccessException(
+                        "The database could not complete the request.", ex);
+            }
+        }
+
         SQLException lastFailure = null;
 
         for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
             try (Connection connection = DBConnection.getConnection()) {
                 connection.setAutoCommit(false);
                 connection.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+                ACTIVE_TRANSACTION.set(connection);
 
                 try {
                     T result = work.execute(connection);
@@ -86,6 +145,9 @@ public final class Tx {
                     rollbackQuietly(connection);
                     throw failure;
                 } finally {
+                    // Clearing first matters: this thread goes back to a pool and
+                    // must not carry a finished transaction into the next request.
+                    ACTIVE_TRANSACTION.remove();
                     // The pool also scrubs this, but resetting here keeps the
                     // connection sane even if the pool is swapped out later.
                     restoreAutoCommit(connection);
