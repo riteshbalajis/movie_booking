@@ -1,0 +1,5 @@
+lib/*.jar
+build/
+out/
+*.class
+config/app.properties
