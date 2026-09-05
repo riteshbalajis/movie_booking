@@ -77,6 +77,10 @@ scripts\run.bat
 
 Open <http://localhost:8080>.
 
+> **Shortcut:** `scripts\setup.bat` does steps 3 to 5 in one go — creates the
+> database, writes your config, builds, and verifies it by running the test
+> suite. `./scripts/setup.sh` on macOS and Linux. See [SETUP.md](SETUP.md).
+
 ### 6. Run the concurrency tests
 
 ```bat

@@ -26,13 +26,26 @@ REM --- Fresh output directory so deleted classes cannot linger --------------
 if exist "build\classes" rmdir /s /q "build\classes"
 mkdir "build\classes"
 
+REM --- Decide the target bytecode version -----------------------------------
+REM Compile for Java 8 so the output runs on any Java 8 or newer runtime. A
+REM modern JDK defaults to its own version, which then fails at startup with
+REM UnsupportedClassVersionError on an older JRE - easy to miss, because the
+REM build itself succeeds.
+REM
+REM --release only exists on JDK 9+. On a JDK 8 it is unnecessary anyway, since
+REM that compiler already emits Java 8 bytecode.
+set "RELEASE=--release 8"
+for /f "tokens=2" %%v in ('javac -version 2^>^&1') do (
+    echo %%v | findstr /b "1." >nul && set "RELEASE="
+)
+
 REM --- Collect sources ------------------------------------------------------
 REM javac takes an @argfile, which avoids the command-line length limit that a
 REM project of this size would otherwise hit on Windows.
 dir /s /b src\main\*.java > build\sources.txt
 
 echo   Compiling main sources...
-javac -encoding UTF-8 -d build\classes @build\sources.txt
+javac %RELEASE% -encoding UTF-8 -d build\classes @build\sources.txt
 if errorlevel 1 (
     echo   [ERROR] Compilation failed.
     exit /b 1
@@ -45,7 +58,7 @@ if exist "src\test" (
     dir /s /b src\test\*.java > build\test-sources.txt
 
     echo   Compiling tests...
-    javac -encoding UTF-8 -cp "build\classes;lib\*" -d build\test-classes @build\test-sources.txt
+    javac %RELEASE% -encoding UTF-8 -cp "build\classes;lib\*" -d build\test-classes @build\test-sources.txt
     if errorlevel 1 (
         echo   [ERROR] Test compilation failed.
         exit /b 1
