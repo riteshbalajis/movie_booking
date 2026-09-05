@@ -9,6 +9,11 @@ Its real subject is **concurrency**: what happens when twenty people go for the
 same seat at the same instant, and how the system guarantees exactly one of them
 gets it.
 
+> **Setting this up on a fresh machine?** Follow **[SETUP.md](SETUP.md)** instead
+> of the quick start below — it covers everything from installing the JDK and
+> MySQL through to the first booking, with the reason for each step and a
+> troubleshooting section.
+>
 > For the full design walkthrough — architecture, the locking protocol, schema
 > notes, API reference and the reasoning behind each decision — see
 > **[PROJECT.md](PROJECT.md)**.
@@ -16,6 +21,9 @@ gets it.
 ---
 
 ## Quick start
+
+*(Already have a JDK and MySQL? Start here. Otherwise use
+[SETUP.md](SETUP.md).)*
 
 ### 1. Prerequisites
 
@@ -132,6 +140,7 @@ movie_booking/
 │   └── Main.java               entry point
 ├── src/test/                   concurrency test suite
 ├── webapp/                     HTML, CSS, JavaScript
+├── SETUP.md                    step-by-step setup on a new machine
 ├── PROJECT.md                  full design document
 └── README.md
 ```
